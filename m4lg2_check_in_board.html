@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M4LG2 Check-In Board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        fredoka: ['Fredoka', 'sans-serif'],
+                        quicksand: ['Quicksand', 'sans-serif'],
+                    },
+                    colors: {
+                        calmCream: '#F9F6F0',
+                        calmSlate: '#1D2D44',
+                        calmSage: '#6B9080',
+                        calmPeach: '#D68C70',
+                        zoneGreen: '#A3D9C9',
+                        zoneBlue: '#97C2FC',
+                        zoneYellow: '#FCD385',
+                        zoneRed: '#F2A0A0',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: #E6E1D6;
+            overflow-x: hidden;
+        }
+        .card-transition {
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .hidden-item {
+            display: none !important;
+        }
+        .shimmer {
+            background: linear-gradient(90deg, #334155 25%, #475569 50%, #334155 75%);
+            background-size: 200% 100%;
+            animation: loading-pulse 1.5s infinite;
+        }
+        @keyframes loading-pulse {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 flex items-center justify-center">
+
+    <canvas id="confetti-canvas"></canvas>
+
+    <div class="bg-calmCream w-full max-w-5xl rounded-3xl shadow-xl overflow-hidden border-4 border-white flex flex-col p-6 md:p-8 space-y-6 relative">
+        
+        <!-- Decorative subtle background accents -->
+        <div class="absolute -bottom-16 -left-16 w-48 h-48 bg-calmSage/5 rounded-full pointer-events-none"></div>
+        <div class="absolute -top-12 -right-12 w-36 h-36 bg-calmPeach/5 rounded-full pointer-events-none"></div>
+
+        <!-- HEADER SECTION -->
+        <div class="flex flex-col md:flex-row justify-between items-center border-b border-gray-200 pb-5 gap-4">
+            <div>
+                <h1 class="font-fredoka text-3xl md:text-4xl text-calmSlate flex items-center gap-3">
+                    <span class="text-4xl">☀️</span> M4LG2 Check-In Board
+                </h1>
+                <p class="text-gray-500 mt-1">Click on Name to check attendance</p>
+            </div>
+
+            <div class="flex items-center gap-3 flex-wrap">
+                <!-- Reset Board Helper -->
+                <button onclick="resetBoard()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2.5 rounded-2xl flex items-center gap-2 shadow-sm card-transition hover:scale-105 active:scale-95 focus:outline-none text-sm font-fredoka">
+                    <i class="fa-solid fa-rotate-left"></i> Reset Board
+                </button>
+
+                <!-- Sensory Chime Button -->
+                <button onclick="playCalmChime()" class="bg-white hover:bg-calmSage/10 border-2 border-calmSage/20 text-calmSlate px-5 py-3 rounded-2xl flex items-center gap-3 shadow-sm card-transition hover:scale-105 active:scale-95 focus:outline-none">
+                    <div class="w-8 h-8 rounded-full bg-calmSage/10 flex items-center justify-center text-calmSage">
+                        <i class="fa-solid fa-volume-high"></i>
+                    </div>
+                    <div class="text-left">
+                        <p class="font-fredoka text-sm text-calmSlate">Sensory Chime</p>
+                        <p class="text-xs text-gray-400">Press for a calm bell</p>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+            
+            <!-- Left Column: Home Column (Holds Student and Teacher Cards) -->
+            <div class="bg-gray-100/60 rounded-3xl p-5 border-2 border-dashed border-gray-300/60 flex flex-col min-h-[400px]">
+                <div class="flex items-center justify-between mb-4 px-2">
+                    <h3 class="font-fredoka text-lg text-gray-500 flex items-center gap-2">
+                        <span class="text-xl">🏡</span> Home
+                    </h3>
+                    <span id="home-count" class="bg-gray-200 text-gray-600 px-3 py-1 rounded-full text-xs font-bold font-fredoka">11 Cards</span>
+                </div>
+
+                <!-- Container of cards in Home column -->
+                <div id="home-column" class="flex flex-col gap-3 content-start flex-grow">
+                    
+                    <div id="card-rufel" onclick="startCheckIn('rufel', 'Rufel', 'https://api.dicebear.com/7.x/adventurer/svg?seed=Sophia&amp;hairVariant=short06&amp;hairColor=1a1a1a&amp;eyebrows=variant10')" class="bg-white border-2 border-gray-200 rounded-2xl p-4 flex items-center justify-between cursor-pointer shadow-sm hover:shadow-md card-transition hover:-translate-y-1 hover:border-calmSage w-full">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-200">
+                                <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Sophia&amp;hairVariant=short06&amp;hairColor=1a1a1a&amp;eyebrows=variant10" class="w-full h-full object-cover" alt="Rufel">
+                            </div>
+                            <div>
+                                <p class="font-fredoka text-calmSlate">Rufel</p>
+                                <p class="text-xs text-gray-400 font-medium">Bookworm 📚</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">Tap to Check In</span>
+                    </div>
+
+                    <div id="card-yuxiong" onclick="startCheckIn('yuxiong', 'Yu Xiong', 'https://api.dicebear.com/7.x/adventurer/svg?seed=YuXiong')" class="bg-white border-2 border-gray-200 rounded-2xl p-4 flex items-center justify-between cursor-pointer shadow-sm hover:shadow-md card-transition hover:-translate-y-1 hover:border-calmSage w-full">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-200">
+                                <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=YuXiong" class="w-full h-full object-cover" alt="Yu Xiong">
+                            </div>
+                            <div>
+                                <p class="font-fredoka text-calmSlate">Yu Xiong</p>
+                                <p class="text-xs text-gray-400 font-medium">Digital Artist 🎨</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">Tap to Check In</span>
+                    </div>
+
+                    <div id="card-richelle" onclick="startCheckIn('richelle', 'Richelle', 'https://api.dicebear.com/7.x/adventurer/svg?seed=Zoe')" class="bg-white border-2 border-gray-200 rounded-2xl p-4 flex items-center justify-between cursor-pointer shadow-sm hover:shadow-md card-transition hover:-translate-y-1 hover:border-calmSage w-full">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-200">
+                                <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Zoe" class="w-full h-full object-cover" alt="Richelle">
+                            </div>
+                            <div>
+                                <p class="font-fredoka text-calmSlate">Richelle</p>
+                                <p class="text-xs text-gray-400 font-medium">Cleaning expert 🧹</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">Tap to Check In</span>
+                    </div>
+
+                    <div id="card-dylan" onclick="startCheckIn('dylan', 'Dylan', 'https://api.dicebear.com/7.x/adventurer/svg?seed=Dylan')" class="bg-white border-2 border-gray-200 rounded-2xl p-4 flex items-center justify-between cursor-pointer shadow-sm hover:shadow-md card-transition hover:-translate-y-1 hover:border-calmSage w-full">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-200">
+                                <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Dylan" class="w-full h-full object-cover" alt="Dylan">
+                            </div>
+                            <div>
+                                <p class="font-fredoka text-calmSlate">Dylan</p>
+                                <p class="text-xs text-gray-400 font-medium">Talented Singer 🎤</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">Tap to Check In</span>
+                    </div>
+
+                    <div id="card-haikal" onclick="startCheckIn('haikal', 'Haikal', 'https://api.dicebear.com/7.x/adventurer/svg?seed=Haikal')" class="bg-white border-2 border-gray-200 rounded-2xl p-4 flex items-center justify-between cursor-pointer shadow-sm hover:shadow-md card-transition hover:-translate-y-1 hover:border-calmSage w-full">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-200">
+                                <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Haikal" class="w-full h-full object-cover" alt="Haikal">
+                            </div>
+                            <div>
+                                <p class="font-fredoka text-calmSlate">Haikal</p>
+                                <p class="text-xs text-gray-400 font-medium">Pro Independent 🌟</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">Tap to Check In</span>
+                    </div>
+
+                    <div id="card-ares" onclick="startCheckIn('ares', 'Ares', 'https://api.dicebear.com/7.x/adventurer/svg?seed=Ares&amp;hairVariant=short02')" class="bg-white border-2 border-gray-200 rounded-2xl p-4 flex items-center justify-between cursor-pointer shadow-sm hover:shadow-md card-transition hover:-translate-y-1 hover:border-calmSage w-full">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-200">
+                                <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Ares&amp;hairVariant=short02" class="w-full h-full object-cover" alt="Ares">
+                            </div>
+                            <div>
+                                <p class="font-fredoka text-calmSlate">Ares</p>
+                                <p class="text-xs text-gray-400 font-medium">Creative Artist 🎨</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">Tap to Check In</span>
+                    </div>
+
+                    <div id="card-shaun" onclick="startCheckIn('shaun', 'Teacher Shaun', 'https://api.dicebear.com/7.x/adventurer/svg?seed=Shaun&amp;glassesProbability=100&amp;hairVariant=short01&amp;hairColor=1a1a1a&amp;skinColor=f2d3b1')" class="bg-purple-50/50 border-2 border-purple-200/60 rounded-2xl p-4 flex items-center justify-between cursor-pointer shadow-sm hover:shadow-md card-transition hover:-translate-y-1 hover:border-purple-400 w-full">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl overflow-hidden bg-purple-100 flex-shrink-0 border border-purple-200">
+                                <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Shaun&amp;glassesProbability=100&amp;hairVariant=short01&amp;hairColor=1a1a1a&amp;skinColor=f2d3b1" class="w-full h-full object-cover" alt="Teacher Shaun">
+                            </div>
+                            <div>
+                                <p class="font-fredoka text-calmSlate flex items-center gap-1.5">
+                                    Teacher Shaun <span class="text-[10px] bg-purple-200 text-purple-700 px-1.5 py-0.5 rounded font-bold font-sans">TEACHER</span>
+                                </p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-purple-400 bg-purple-100/50 px-2.5 py-1 rounded-full">Tap to Check In</span>
+                    </div>
+
+                    <div id="card-ana" onclick="startCheckIn('ana', 'Teacher Ana', 'https://api.dicebear.com/7.x/adventurer/svg?seed=Ana')" class="bg-purple-50/50 border-2 border-purple-200/60 rounded-2xl p-4 flex items-center justify-between cursor-pointer shadow-sm hover:shadow-md card-transition hover:-translate-y-1 hover:border-purple-400 w-full">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl overflow-hidden bg-purple-100 flex-shrink-0 border border-purple-200">
+                                <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Ana" class="w-full h-full object-cover" alt="Teacher Ana">
+                            </div>
+                            <div>
+                                <p class="font-fredoka text-calmSlate flex items-center gap-1.5">
+                                    Teacher Ana <span class="text-[10px] bg-purple-200 text-purple-700 px-1.5 py-0.5 rounded font-bold font-sans">TEACHER</span>
+                                </p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-purple-400 bg-purple-100/50 px-2.5 py-1 rounded-full">Tap to Check In</span>
+                    </div>
+
+                    <div id="card-terry" onclick="startCheckIn('terry', 'Teacher Terry', 'https://api.dicebear.com/7.x/adventurer/svg?seed=Jack&amp;hairProbability=0')" class="bg-purple-50/50 border-2 border-purple-200/60 rounded-2xl p-4 flex items-center justify-between cursor-pointer shadow-sm hover:shadow-md card-transition hover:-translate-y-1 hover:border-purple-400 w-full">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl overflow-hidden bg-purple-100 flex-shrink-0 border border-purple-200">
+                                <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Jack&amp;hairProbability=0" class="w-full h-full object-cover" alt="Teacher Terry">
+                            </div>
+                            <div>
+                                <p class="font-fredoka text-calmSlate flex items-center gap-1.5">
+                                    Teacher Terry <span class="text-[10px] bg-purple-200 text-purple-700 px-1.5 py-0.5 rounded font-bold font-sans">TEACHER</span>
+                                </p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-purple-400 bg-purple-100/50 px-2.5 py-1 rounded-full">Tap to Check In</span>
+                    </div>
+
+                    <div id="card-sofi" onclick="startCheckIn('sofi', 'Teacher Sofi', 'https://api.dicebear.com/7.x/adventurer/svg?seed=Oliver&amp;hairVariant=short01&amp;hairColor=1a1a1a')" class="bg-purple-50/50 border-2 border-purple-200/60 rounded-2xl p-4 flex items-center justify-between cursor-pointer shadow-sm hover:shadow-md card-transition hover:-translate-y-1 hover:border-purple-400 w-full">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl overflow-hidden bg-purple-100 flex-shrink-0 border border-purple-200">
+                                <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Oliver&amp;hairVariant=short01&amp;hairColor=1a1a1a" class="w-full h-full object-cover" alt="Teacher Sofi">
+                            </div>
+                            <div>
+                                <p class="font-fredoka text-calmSlate flex items-center gap-1.5">
+                                    Teacher Sofi <span class="text-[10px] bg-purple-200 text-purple-700 px-1.5 py-0.5 rounded font-bold font-sans">TEACHER</span>
+                                </p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-purple-400 bg-purple-100/50 px-2.5 py-1 rounded-full">Tap to Check In</span>
+                    </div>
+
+                    <div id="card-nat" onclick="startCheckIn('nat', 'Teacher Nat', 'https://api.dicebear.com/7.x/adventurer/svg?seed=Nat')" class="bg-purple-50/50 border-2 border-purple-200/60 rounded-2xl p-4 flex items-center justify-between cursor-pointer shadow-sm hover:shadow-md card-transition hover:-translate-y-1 hover:border-purple-400 w-full">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl overflow-hidden bg-purple-100 flex-shrink-0 border border-purple-200">
+                                <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Nat" class="w-full h-full object-cover" alt="Teacher Nat">
+                            </div>
+                            <div>
+                                <p class="font-fredoka text-calmSlate flex items-center gap-1.5">
+                                    Teacher Nat <span class="text-[10px] bg-purple-200 text-purple-700 px-1.5 py-0.5 rounded font-bold font-sans">TEACHER</span>
+                                </p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-purple-400 bg-purple-100/50 px-2.5 py-1 rounded-full">Tap to Check In</span>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Right Column: Rainbow Centre Column -->
+            <div class="bg-calmSage/10 rounded-3xl p-5 border-2 border-calmSage/20 flex flex-col min-h-[400px]">
+                <div class="flex items-center justify-between mb-4 px-2">
+                    <h3 class="font-fredoka text-lg text-calmSage flex items-center gap-2">
+                        <span class="text-xl">🏫</span> Rainbow Centre
+                    </h3>
+                    <span id="school-count" class="bg-calmSage/20 text-calmSage px-3 py-1 rounded-full text-xs font-bold font-fredoka">0 Cards</span>
+                </div>
+
+                <!-- Container of checked-in cards in Rainbow Centre Column -->
+                <div id="school-column" class="flex flex-col gap-3 content-start flex-grow">
+                    <!-- Cards will dynamically move here -->
+                    <div id="empty-placeholder" class="w-full h-full flex flex-col items-center justify-center text-center text-gray-400 py-24">
+                        <span class="text-4xl mb-2 opacity-50">🏫</span>
+                        <p class="text-sm font-semibold">No one checked in to Rainbow Centre yet!</p>
+                        <p class="text-xs mt-1 text-gray-400">Tap a card on the left to begin.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="bg-calmSlate text-white rounded-3xl p-6 border-4 border-slate-700 shadow-lg">
+            <div class="flex items-center justify-between cursor-pointer" onclick="toggleTeacherInsights()">
+                <div class="flex items-center gap-3">
+                    <span class="bg-slate-800 p-2 rounded-xl text-xl">🧠</span>
+                    <div>
+                        <h3 class="font-fredoka text-lg text-white">Teacher's Companion</h3>
+                        <p class="text-xs text-slate-400">AI sensory adjustments based on active student energy zones</p>
+                    </div>
+                </div>
+                <button id="insights-chevron" class="text-slate-400 hover:text-white transition-transform duration-300">
+                    <i class="fa-solid fa-chevron-down"></i>
+                </button>
+            </div>
+
+            <div id="teacher-insights-content" class="hidden-item mt-5 pt-5 border-t border-slate-700 space-y-4">
+                <div class="flex flex-wrap gap-3 items-center justify-between bg-slate-800/50 p-4 rounded-2xl">
+                    <div class="text-xs text-slate-300">
+                        <span class="font-bold text-calmPeach">Active States:</span> 
+                        <span id="summary-blue" class="ml-1 text-[#a5cbfb]">0 Blue</span>, 
+                        <span id="summary-green" class="ml-1 text-[#cbf3e5]">0 Green</span>, 
+                        <span id="summary-yellow" class="ml-1 text-[#fdebc8]">0 Yellow</span>,
+                        <span id="summary-red" class="ml-1 text-[#fca5a5]">0 Red</span>
+                    </div>
+                    <button onclick="generateTeacherStrategies()" id="btn-get-insights" class="bg-calmSage hover:bg-calmSage/80 text-white font-fredoka text-xs px-4 py-2.5 rounded-xl card-transition shadow-md flex items-center gap-2">
+                        <i class="fa-solid fa-brain"></i> Refresh AI Co-Regulation Strategies
+                    </button>
+                </div>
+
+                <div id="insights-body" class="text-sm leading-relaxed text-slate-200">
+                    <div class="flex items-center gap-3 text-slate-400 py-4 italic">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span>Check in students and teachers above to record their locations and zones, then click the button to generate co-regulation strategies!</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="regulation-modal" class="hidden-item fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl border-4 border-calmCream card-transition scale-95 flex flex-col items-center">
+                <!-- Avatar image inside pop-up -->
+                <div class="w-24 h-24 rounded-2xl overflow-hidden bg-gray-50 border-2 border-gray-200 mb-3 shadow-md">
+                    <img id="modal-avatar-img" src="" class="w-full h-full object-cover" alt="Student Profile">
+                </div>
+                <h3 class="font-fredoka text-2xl text-calmSlate">Welcome, <span id="modal-name">Rufel</span>!</h3>
+                <p class="text-gray-500 text-sm mt-1 mb-6 text-center">Where are you learning today and how is your motor/feeling engine?</p>
+
+                <!-- Step 1: Location Toggle -->
+                <div class="flex bg-gray-100 p-1.5 rounded-2xl w-full mb-6">
+                    <button id="modal-loc-school" onclick="selectModalLocation('school')" class="flex-1 py-3 rounded-xl font-fredoka text-sm transition-all duration-300 flex items-center justify-center gap-2 shadow-sm bg-white text-calmSlate">
+                        <span class="text-lg">🏫</span> Rainbow Centre
+                    </button>
+                    <button id="modal-loc-home" onclick="selectModalLocation('home')" class="flex-1 py-3 rounded-xl font-fredoka text-sm transition-all duration-300 flex items-center justify-center gap-2 text-gray-500">
+                        <span class="text-lg">🏡</span> Home Check-In
+                    </button>
+                </div>
+
+                <!-- Step 2: Feeling Regulation Grid -->
+                <div class="w-full">
+                    <p class="text-left text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Choose your feeling zone</p>
+                    <div class="grid grid-cols-2 gap-3 w-full mb-6">
+                        
+                        <!-- Green: Thankful, Calm, Focus, Positive -->
+                        <button onclick="finishCheckIn('green')" class="bg-zoneGreen/20 hover:bg-zoneGreen/40 border-2 border-zoneGreen/30 hover:border-zoneGreen p-4 rounded-2xl flex flex-col items-center gap-1.5 card-transition hover:scale-105 text-center">
+                            <span class="text-2xl">😊</span>
+                            <span class="font-fredoka text-xs text-[#2A6655]">Green Zone</span>
+                            <span class="text-[10px] text-gray-600 font-semibold leading-tight">Thankful, Calm,<br>Focus, Positive</span>
+                        </button>
+
+                        <!-- Blue: Sad, Slow, Sick, Tired -->
+                        <button onclick="finishCheckIn('blue')" class="bg-zoneBlue/20 hover:bg-zoneBlue/40 border-2 border-zoneBlue/30 hover:border-zoneBlue p-4 rounded-2xl flex flex-col items-center gap-1.5 card-transition hover:scale-105 text-center">
+                            <span class="text-2xl">💤</span>
+                            <span class="font-fredoka text-xs text-[#2F5382]">Blue Zone</span>
+                            <span class="text-[10px] text-gray-600 font-semibold leading-tight">Sad, Slow,<br>Sick, Tired</span>
+                        </button>
+
+                        <!-- Yellow: Nervous, Not Ready, Frustrated -->
+                        <button onclick="finishCheckIn('yellow')" class="bg-zoneYellow/20 hover:bg-zoneYellow/40 border-2 border-zoneYellow/30 hover:border-zoneYellow p-4 rounded-2xl flex flex-col items-center gap-1.5 card-transition hover:scale-105 text-center">
+                            <span class="text-2xl">🌀</span>
+                            <span class="font-fredoka text-xs text-[#7A5B1E]">Yellow Zone</span>
+                            <span class="text-[10px] text-gray-600 font-semibold leading-tight">Nervous, Not Ready,<br>Frustrated</span>
+                        </button>
+
+                        <!-- Red: Angry, Annoyed, Out of Control, Hitting -->
+                        <button onclick="finishCheckIn('red')" class="bg-zoneRed/20 hover:bg-zoneRed/40 border-2 border-zoneRed/30 hover:border-zoneRed p-4 rounded-2xl flex flex-col items-center gap-1.5 card-transition hover:scale-105 text-center">
+                            <span class="text-2xl">😡</span>
+                            <span class="font-fredoka text-xs text-[#991B1B]">Red Zone</span>
+                            <span class="text-[10px] text-gray-600 font-semibold leading-tight">Angry, Annoyed,<br>Out of Control, Hitting</span>
+                        </button>
+
+                    </div>
+                </div>
+
+                <button onclick="closeModal()" class="text-gray-400 hover:text-calmSlate font-fredoka text-sm underline focus:outline-none">Cancel</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- AUDIO SCRIPT, INTERACTION, AND OFFLINE ENGINES -->
+    <script>
+        const OFFLINE_STRATEGIES = {
+            "all-green": [
+                "Classroom states are rested and calm. Maintain the planned routine and follow visual schedules.",
+                "Reinforce green-zone predictability with soft classroom background music.",
+                "Ensure transition periods are explicitly signposted on visual schedules."
+            ],
+            "has-yellow": [
+                "Several yellow-zone entries noticed. Plan an active, non-verbal movement break (heavy work, desk pushes).",
+                "Dim overhead fluorescence by 30% if possible to minimize sensory stimulation.",
+                "Provide option for noise-reduction headphones during initial silent workspace task."
+            ],
+            "has-blue": [
+                "Blue zone indicators identified. Offer a low-stress warm-up option (quiet coloring or clay manipulation).",
+                "Ensure the quiet corner is open and equipped with weighted pressure cushions.",
+                "Allow extra processing time before calling on students or staff for interactive answers."
+            ],
+            "has-red": [
+                "Red zone feelings registered. Immediately open the sensory decompression tent or quiet corner options.",
+                "Implement zero-demand calming periods; reduce direct auditory questions and replace with visual choice cards.",
+                "Offer calming tactile items (resistance bands, squeeze balls, or heavy lap pads) immediately."
+            ]
+        };
+
+        function playCalmChime() {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                
+                const ctx = new AudioContext();
+                const playNote = (pitch, delay, length, vol) => {
+                    const osc = ctx.createOscillator();
+                    const gainNode = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(pitch, ctx.currentTime + delay);
+                    gainNode.gain.setValueAtTime(0, ctx.currentTime + delay);
+                    gainNode.gain.linearRampToValueAtTime(vol, ctx.currentTime + delay + 0.05);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + length);
+                    osc.connect(gainNode);
+                    gainNode.connect(ctx.destination);
+                    osc.start(ctx.currentTime + delay);
+                    osc.stop(ctx.currentTime + delay + length);
+                };
+                playNote(659.25, 0, 1.2, 0.15);     // E5
+                playNote(880.00, 0.15, 1.5, 0.20);  // A5
+            } catch (e) {
+                console.log("Audio synthesis limited or blocked by user interaction settings.");
+            }
+        }
+
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function createConfetti() {
+            const colors = ['#A3D9C9', '#97C2FC', '#FCD385', '#F2A0A0', '#D68C70', '#6B9080'];
+            for (let i = 0; i < 40; i++) {
+                particles.push({
+                    x: window.innerWidth / 2,
+                    y: window.innerHeight / 2,
+                    vx: (Math.random() - 0.5) * 12,
+                    vy: (Math.random() - 0.6) * 12 - 4,
+                    r: Math.random() * 6 + 4,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    alpha: 1,
+                    decay: Math.random() * 0.015 + 0.015
+                });
+            }
+            requestAnimationFrame(updateParticles);
+        }
+
+        function updateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles = particles.filter(p => p.alpha > 0);
+            
+            particles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.15; // gravity
+                p.alpha -= p.decay;
+                
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, p.alpha);
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+                ctx.restore();
+            });
+            
+            if (particles.length > 0) {
+                requestAnimationFrame(updateParticles);
+            }
+        }
+
+        let activeId = '';
+        let activeName = '';
+        let activeAvatar = '';
+
+        let homeCount = 11; // 6 students + 5 teachers
+        let schoolCount = 0;
+        let checkedInStates = {}; // keeps track of { studentName: { location: 'school'|'home', zone: 'green'|'blue'|'yellow'|'red' } }
+
+        // Swapped configuration details:
+        // Rufel now uses the Sophia (short bob hair, thin eyebrows) icon.
+        // Teacher Sofi now uses the Oliver (short black hair) icon.
+        const originalCards = {
+            rufel: { name: 'Rufel', avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Sophia&amp;hairVariant=short06&amp;hairColor=1a1a1a&amp;eyebrows=variant10', bio: 'Bookworm 📚' },
+            yuxiong: { name: 'Yu Xiong', avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=YuXiong', bio: 'Digital Artist 🎨' },
+            richelle: { name: 'Richelle', avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Zoe', bio: 'Cleaning expert 🧹' },
+            dylan: { name: 'Dylan', avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Dylan', bio: 'Talented Singer 🎤' },
+            haikal: { name: 'Haikal', avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Haikal', bio: 'Pro Independent 🌟' },
+            ares: { name: 'Ares', avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Ares&amp;hairVariant=short02', bio: 'Creative Artist 🎨' },
+            shaun: { name: 'Teacher Shaun', avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Shaun&amp;glassesProbability=100&amp;hairVariant=short01&amp;hairColor=1a1a1a&amp;skinColor=f2d3b1', bio: '', isTeacher: true },
+            ana: { name: 'Teacher Ana', avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Ana', bio: '', isTeacher: true },
+            terry: { name: 'Teacher Terry', avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Jack&amp;hairProbability=0', bio: '', isTeacher: true },
+            sofi: { name: 'Teacher Sofi', avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Oliver&amp;hairVariant=short01&amp;hairColor=1a1a1a', bio: '', isTeacher: true },
+            nat: { name: 'Teacher Nat', avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Nat', bio: '', isTeacher: true }
+        };
+
+        function startCheckIn(id, name, avatar) {
+            activeId = id;
+            activeName = name;
+            activeAvatar = avatar;
+            selectedLocation = 'school';
+
+            document.getElementById('modal-name').textContent = name;
+            document.getElementById('modal-avatar-img').src = avatar;
+
+            selectModalLocation('school');
+
+            const modal = document.getElementById('regulation-modal');
+            modal.classList.remove('hidden-item');
+            setTimeout(() => {
+                modal.firstElementChild.classList.remove('scale-95');
+                modal.firstElementChild.classList.add('scale-100');
+            }, 10);
+        }
+
+        function selectModalLocation(loc) {
+            selectedLocation = loc;
+            const schoolBtn = document.getElementById('modal-loc-school');
+            const homeBtn = document.getElementById('modal-loc-home');
+
+            if (loc === 'school') {
+                schoolBtn.className = "flex-1 py-3 rounded-xl font-fredoka text-sm transition-all duration-300 flex items-center justify-center gap-2 shadow-sm bg-white text-calmSlate font-semibold";
+                homeBtn.className = "flex-1 py-3 rounded-xl font-fredoka text-sm transition-all duration-300 flex items-center justify-center gap-2 text-gray-500 hover:text-calmSlate";
+            } else {
+                homeBtn.className = "flex-1 py-3 rounded-xl font-fredoka text-sm transition-all duration-300 flex items-center justify-center gap-2 shadow-sm bg-white text-calmSlate font-semibold";
+                schoolBtn.className = "flex-1 py-3 rounded-xl font-fredoka text-sm transition-all duration-300 flex items-center justify-center gap-2 text-gray-500 hover:text-calmSlate";
+            }
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('regulation-modal');
+            modal.firstElementChild.classList.remove('scale-100');
+            modal.firstElementChild.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden-item');
+            }, 150);
+        }
+
+        function finishCheckIn(zone) {
+            closeModal();
+            const card = document.getElementById(`card-${activeId}`);
+            if (!card) return;
+
+            checkedInStates[activeName] = { location: selectedLocation, zone: zone };
+            updateStateSummaryCount();
+
+            card.onclick = null;
+            card.classList.remove('cursor-pointer', 'hover:border-calmSage', 'hover:border-purple-400', 'hover:-translate-y-1');
+
+            let zoneClass = 'border-gray-200 bg-white';
+            let zoneLabel = '';
+            
+            if (zone === 'green') {
+                zoneClass = 'border-zoneGreen bg-zoneGreen/10';
+                zoneLabel = '<span class="text-xs font-bold text-[#2A6655] bg-zoneGreen/30 px-2.5 py-1 rounded-full">Feeling: Green 😊 (Thankful/Calm)</span>';
+            } else if (zone === 'blue') {
+                zoneClass = 'border-zoneBlue bg-zoneBlue/10';
+                zoneLabel = '<span class="text-xs font-bold text-[#2F5382] bg-zoneBlue/30 px-2.5 py-1 rounded-full">Feeling: Blue 💤 (Sad/Tired)</span>';
+            } else if (zone === 'yellow') {
+                zoneClass = 'border-zoneYellow bg-zoneYellow/10';
+                zoneLabel = '<span class="text-xs font-bold text-[#7A5B1E] bg-zoneYellow/30 px-2.5 py-1 rounded-full">Feeling: Yellow 🌀 (Nervous/Frustrated)</span>';
+            } else if (zone === 'red') {
+                zoneClass = 'border-zoneRed bg-zoneRed/20';
+                zoneLabel = '<span class="text-xs font-bold text-[#991B1B] bg-zoneRed/50 px-2.5 py-1 rounded-full">Feeling: Red 😡 (Angry/Out of Control)</span>';
+            }
+
+            const isTeacher = originalCards[activeId].isTeacher;
+            const teacherBadge = isTeacher ? '<span class="text-[10px] bg-purple-200 text-purple-700 px-1.5 py-0.5 rounded font-bold font-sans">TEACHER</span>' : '';
+
+            card.className = `${zoneClass} border-2 rounded-2xl p-4 flex items-center justify-between shadow-sm card-transition w-full`;
+            card.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl overflow-hidden bg-white border border-gray-200 shadow-sm flex-shrink-0">
+                        <img src="${activeAvatar}" class="w-full h-full object-cover" alt="${activeName}">
+                    </div>
+                    <div>
+                        <p class="font-fredoka text-calmSlate text-lg flex items-center gap-1.5">${activeName} ${teacherBadge}</p>
+                        <p class="text-xs text-gray-400 font-medium">Checked into ${selectedLocation === 'school' ? 'Rainbow Centre' : 'Home'}</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    ${zoneLabel}
+                    <button onclick="revertCard('${activeId}', '${activeName}', '${activeAvatar}')" class="text-gray-300 hover:text-red-400 p-1 rounded-lg transition-colors ml-1" title="Change Location">
+                        <i class="fa-solid fa-pen-to-square text-sm"></i>
+                    </button>
+                </div>
+            `;
+
+            if (selectedLocation === 'school') {
+                const schoolColumn = document.getElementById('school-column');
+                const placeholder = document.getElementById('empty-placeholder');
+                if (placeholder) placeholder.style.display = 'none';
+                schoolColumn.appendChild(card);
+            } else {
+                const homeColumn = document.getElementById('home-column');
+                homeColumn.appendChild(card);
+            }
+
+            createConfetti();
+            playCalmChime();
+            recalculateCounters();
+        }
+
+        function revertCard(id, name, avatar) {
+            delete checkedInStates[name];
+            updateStateSummaryCount();
+
+            const card = document.getElementById(`card-${id}`);
+            if (!card) return;
+
+            const config = originalCards[id];
+            const isTeacher = config.isTeacher;
+            
+            card.onclick = () => startCheckIn(id, name, avatar);
+            
+            if (isTeacher) {
+                card.className = "bg-purple-50/50 border-2 border-purple-200/60 rounded-2xl p-4 flex items-center justify-between cursor-pointer shadow-sm hover:shadow-md card-transition hover:-translate-y-1 hover:border-purple-400 w-full";
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-xl overflow-hidden bg-purple-100 border border-purple-200 flex-shrink-0">
+                            <img src="${avatar}" class="w-full h-full object-cover" alt="${name}">
+                        </div>
+                        <div>
+                            <p class="font-fredoka text-calmSlate flex items-center gap-1.5">
+                                ${name} <span class="text-[10px] bg-purple-200 text-purple-700 px-1.5 py-0.5 rounded font-bold font-sans">TEACHER</span>
+                            </p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-bold text-purple-400 bg-purple-100/50 px-2.5 py-1 rounded-full">Tap to Check In</span>
+                `;
+            } else {
+                card.className = "bg-white border-2 border-gray-200 rounded-2xl p-4 flex items-center justify-between cursor-pointer shadow-sm hover:shadow-md card-transition hover:-translate-y-1 hover:border-calmSage w-full";
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-xl overflow-hidden bg-gray-50 border border-gray-200 flex-shrink-0">
+                            <img src="${avatar}" class="w-full h-full object-cover" alt="${name}">
+                        </div>
+                        <div>
+                            <p class="font-fredoka text-calmSlate">${name}</p>
+                            <p class="text-xs text-gray-400 font-medium">${config.bio}</p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-bold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">Tap to Check In</span>
+                `;
+            }
+
+            const homeColumn = document.getElementById('home-column');
+            homeColumn.appendChild(card);
+
+            playCalmChime();
+            recalculateCounters();
+        }
+
+        function recalculateCounters() {
+            const schoolColumn = document.getElementById('school-column');
+            const schoolCardsCount = schoolColumn.querySelectorAll('[id^="card-"]').length;
+            schoolCount = schoolCardsCount;
+
+            const placeholder = document.getElementById('empty-placeholder');
+            if (schoolCount === 0) {
+                if (placeholder) placeholder.style.display = 'flex';
+            } else {
+                if (placeholder) placeholder.style.display = 'none';
+            }
+
+            const homeColumn = document.getElementById('home-column');
+            const homeCardsCount = homeColumn.querySelectorAll('[id^="card-"]').length;
+            homeCount = homeCardsCount;
+
+            document.getElementById('home-count').textContent = `${homeCount} ${homeCount === 1 ? 'Card' : 'Cards'}`;
+            document.getElementById('school-count').textContent = `${schoolCount} ${schoolCount === 1 ? 'Card' : 'Cards'}`;
+        }
+
+        function updateStateSummaryCount() {
+            let blue = 0, green = 0, yellow = 0, red = 0;
+            for (const item of Object.values(checkedInStates)) {
+                if (item.zone === 'blue') blue++;
+                if (item.zone === 'green') green++;
+                if (item.zone === 'yellow') yellow++;
+                if (item.zone === 'red') red++;
+            }
+            document.getElementById('summary-blue').textContent = `${blue} Blue`;
+            document.getElementById('summary-green').textContent = `${green} Green`;
+            document.getElementById('summary-yellow').textContent = `${yellow} Yellow`;
+            document.getElementById('summary-red').textContent = `${red} Red`;
+        }
+
+        function toggleTeacherInsights() {
+            const content = document.getElementById('teacher-insights-content');
+            const chevron = document.getElementById('insights-chevron');
+            if (content.classList.contains('hidden-item')) {
+                content.classList.remove('hidden-item');
+                chevron.classList.add('rotate-180');
+            } else {
+                content.classList.add('hidden-item');
+                chevron.classList.remove('rotate-180');
+            }
+        }
+
+        async function fetchGeminiWithBackoff(payload, retries = 3, delay = 1000) {
+            const apiKey = ""; 
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+            
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (response.ok) return await response.json();
+                    if (response.status === 429) {
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        delay *= 2;
+                        continue;
+                    }
+                    throw new Error(`API error: ${response.statusText}`);
+                } catch (e) {
+                    if (i === retries - 1) throw e;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2;
+                }
+            }
+        }
+
+        async function generateTeacherStrategies() {
+            const btn = document.getElementById('btn-get-insights');
+            const originalHTML = btn.innerHTML;
+            const insightsBody = document.getElementById('insights-body');
+            
+            const studentProfiles = [];
+            for (const [name, state] of Object.entries(checkedInStates)) {
+                studentProfiles.push(`${name} is checked into ${state.location === 'school' ? 'Rainbow Centre' : 'Home'} in the ${state.zone === 'neutral' ? 'Neutral/Just-In' : state.zone + ' Zone'}`);
+            }
+
+            if (studentProfiles.length === 0) {
+                insightsBody.innerHTML = `
+                    <div class="flex items-center gap-3 text-amber-400 py-4 italic text-sm">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <span>Check in students and teachers above to record their locations and zones, then try again!</span>
+                    </div>
+                `;
+                return;
+            }
+
+            btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Analyzing...`;
+            btn.disabled = true;
+            insightsBody.innerHTML = `
+                <div class="space-y-3">
+                    <div class="h-4 shimmer rounded w-3/4"></div>
+                    <div class="h-4 shimmer rounded w-5/6"></div>
+                    <div class="h-4 shimmer rounded w-2/3"></div>
+                </div>
+            `;
+
+            const systemPrompt = `You are an expert school psychologist, board certified behavior analyst (BCBA), and occupational therapist specializing in pediatric autism support and classroom regulation at Rainbow Centre.
+Your goal is to supply three actionable, highly calming support suggestions based on the student and staff feeling distribution across the 4 regulation zones:
+- Green: Thankful, Calm, Focus, Positive
+- Blue: Sad, Slow, Sick, Tired
+- Yellow: Nervous, Not Ready, Frustrated
+- Red: Angry, Annoyed, Out of Control, Hitting
+
+Provide clear sensory tips (tactile, physical movement, noise management, quiet corners, weighted support) appropriate for neurodiversity-affirming classrooms. Keep suggestions brief, respectful, and highly actionable.`;
+
+            const userPrompt = `The morning check-in has completed. Current student and teacher statuses:
+${studentProfiles.join(', ')}
+
+Please provide exactly 3 quick, sensory-affirmative morning adjustments. Mention specifically what to do for kids in Rainbow Centre vs kids staying home today. Make them clear bullet points!`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userPrompt }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] }
+            };
+
+            try {
+                const data = await fetchGeminiWithBackoff(payload);
+                let responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!responseText) throw new Error("Empty insights response");
+
+                renderStrategies(responseText);
+            } catch (err) {
+                console.log("Generating smart fallback insights offline.");
+                let selectedFallback = [...OFFLINE_STRATEGIES["all-green"]];
+                
+                let hasYellow = Object.values(checkedInStates).some(s => s.zone === "yellow");
+                let hasBlue = Object.values(checkedInStates).some(s => s.zone === "blue");
+                let hasRed = Object.values(checkedInStates).some(s => s.zone === "red");
+
+                if (hasYellow) selectedFallback.push(...OFFLINE_STRATEGIES["has-yellow"]);
+                if (hasBlue) selectedFallback.push(...OFFLINE_STRATEGIES["has-blue"]);
+                if (hasRed) selectedFallback.push(...OFFLINE_STRATEGIES["has-red"]);
+
+                const uniqueStrategies = Array.from(new Set(selectedFallback)).slice(0, 3);
+                const mdFormatted = uniqueStrategies.map(s => `* **Sensory Strategy:** ${s}`).join('\n');
+                renderStrategies(mdFormatted);
+            } finally {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
+        }
+
+        function renderStrategies(markdownText) {
+            const insightsBody = document.getElementById('insights-body');
+            let formattedHTML = markdownText
+                .replace(/\*\*(.*?)\*\"/g, '<strong>$1</strong>')
+                .split('\n')
+                .filter(line => line.trim().startsWith('*') || line.trim().startsWith('-'))
+                .map(line => {
+                    const content = line.replace(/^[\s*-]+/, '').trim();
+                    return `
+                        <li class="flex items-start gap-3 bg-slate-800/40 border border-slate-700/50 p-3.5 rounded-xl hover:border-calmSage/40 transition-colors">
+                            <span class="text-calmSage text-lg">💡</span>
+                            <span class="text-xs md:text-sm text-slate-200 leading-relaxed">${content}</span>
+                        </li>
+                    `;
+                })
+                .join('');
+
+            if (formattedHTML.length > 0) {
+                insightsBody.innerHTML = `<ul class="space-y-3">${formattedHTML}</ul>`;
+            } else {
+                const fallbackParsed = markdownText
+                    .replace(/\n/g, '<br/>')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                insightsBody.innerHTML = `
+                    <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-700 text-xs md:text-sm">
+                        ${fallbackParsed}
+                    </div>
+                `;
+            }
+        }
+
+        function resetBoard() {
+            checkedInStates = {};
+            updateStateSummaryCount();
+
+            const schoolColumn = document.getElementById('school-column');
+            schoolColumn.innerHTML = `
+                <div id="empty-placeholder" class="w-full h-full flex flex-col items-center justify-center text-center text-gray-400 py-24">
+                    <span class="text-4xl mb-2 opacity-50">🏫</span>
+                    <p class="text-sm font-semibold">No one checked in to Rainbow Centre yet!</p>
+                    <p class="text-xs mt-1 text-gray-400">Tap a card on the left to begin.</p>
+                </div>
+            `;
+
+            const homeColumn = document.getElementById('home-column');
+            homeColumn.innerHTML = '';
+            
+            Object.entries(originalCards).forEach(([id, info]) => {
+                const cardDiv = document.createElement('div');
+                cardDiv.id = `card-${id}`;
+                cardDiv.onclick = () => startCheckIn(id, info.name, info.avatar);
+                
+                const isTeacher = info.isTeacher;
+                
+                if (isTeacher) {
+                    cardDiv.className = "bg-purple-50/50 border-2 border-purple-200/60 rounded-2xl p-4 flex items-center justify-between cursor-pointer shadow-sm hover:shadow-md card-transition hover:-translate-y-1 hover:border-purple-400 w-full";
+                    cardDiv.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl overflow-hidden bg-purple-100 border border-purple-200 flex-shrink-0">
+                                <img src="${info.avatar}" class="w-full h-full object-cover" alt="${info.name}">
+                            </div>
+                            <div>
+                                <p class="font-fredoka text-calmSlate flex items-center gap-1.5">
+                                    ${info.name} <span class="text-[10px] bg-purple-200 text-purple-700 px-1.5 py-0.5 rounded font-bold font-sans">TEACHER</span>
+                                </p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-purple-400 bg-purple-100/50 px-2.5 py-1 rounded-full">Tap to Check In</span>
+                    `;
+                } else {
+                    cardDiv.className = "bg-white border-2 border-gray-200 rounded-2xl p-4 flex items-center justify-between cursor-pointer shadow-sm hover:shadow-md card-transition hover:-translate-y-1 hover:border-calmSage w-full";
+                    cardDiv.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-xl overflow-hidden bg-gray-50 border border-gray-200 flex-shrink-0">
+                                <img src="${info.avatar}" class="w-full h-full object-cover" alt="${info.name}">
+                            </div>
+                            <div>
+                                <p class="font-fredoka text-calmSlate">${info.name}</p>
+                                <p class="text-xs text-gray-400 font-medium">${info.bio}</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">Tap to Check In</span>
+                    `;
+                }
+                
+                homeColumn.appendChild(cardDiv);
+            });
+
+            recalculateCounters();
+
+            document.getElementById('insights-body').innerHTML = `
+                <div class="flex items-center gap-3 text-slate-400 py-4 italic">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span>Check in students and teachers above to record their locations and zones, then click the button to generate co-regulation strategies!</span>
+                </div>
+            `;
+
+            playCalmChime();
+        }
+    </script>
+</body>
+</html>
